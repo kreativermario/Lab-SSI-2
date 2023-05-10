@@ -1,10 +1,9 @@
 import os
 import socket
 import time
-import pk_encryption
 import json
 from utils import print_public_key, generate_secret_key, get_public_key_from_cert, \
-    do_decrypt_with_passphrase
+    do_decrypt_with_passphrase, cipher_with_public_key
 
 
 def init_socket(port):
@@ -68,7 +67,7 @@ class Alice:
 
     def create_encrypted_sk(self, sk):
         # 5. Alice encripta SK com chave pública do Bob
-        encrypted_sk = pk_encryption.cipher_with_public_key(
+        encrypted_sk = cipher_with_public_key(
             sk.encode(), self.bob_public_key)
         return encrypted_sk
 

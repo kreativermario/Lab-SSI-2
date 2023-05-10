@@ -2,9 +2,8 @@ import json
 import socket
 import time
 
-import pk_encryption
+from depreciated import pk_encryption
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
 from utils import generate_certificate, do_encrypt_with_passphrase, \
     decipher_with_private_key
 

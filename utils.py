@@ -134,3 +134,11 @@ def decipher_with_private_key(privkey, ciphertext):
     return plaintext
 
 
+# Ciphers a message with the public key
+def cipher_with_public_key(message, pubkey):
+    print("\nCiphering with the public key...")
+
+    ciphertext = pubkey.encrypt(message, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    print("Ciphertext = " + str(base64.b64encode(ciphertext)))
+    return ciphertext
+
