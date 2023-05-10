@@ -3,11 +3,8 @@ import socket
 import time
 import pk_encryption
 import json
-from cryptography.hazmat.primitives import serialization
-from cryptography import x509
 from utils import print_public_key, generate_secret_key, get_public_key_from_cert, \
     do_decrypt_with_passphrase
-from cryptography.hazmat.primitives.asymmetric import padding
 
 
 def init_socket(port):
@@ -38,6 +35,7 @@ class Alice:
         self.encrypted_sk2 = self.create_encrypted_sk(self.sk2)
         self.send_renew_secret_key()
         self.send_encrypted_sk(self.encrypted_sk2)
+        self.decrypt_message_with_sk(self.sk2)
 
     def send_get_certificate(self):
         # 1. Alice faz GET_CERTIFICATE ao Bob
@@ -137,9 +135,4 @@ class Alice:
         time.sleep(1)
 
 
-# 19. Bob envia mensagem encriptada com SK2 à Alice
-#encrypted_message2 = s.recv(5000)
-
-# 20. Alice decifra mensagem com SK2
-# message2 = decrypt_SK2(encrypted_message2)  # TODO Função a ser implementada
 alice = Alice(44444)
