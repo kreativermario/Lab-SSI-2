@@ -3,10 +3,17 @@ import os
 import base64
 from cryptography import x509
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
+
+
+# Create a new keypair
+def create_key_pair(keysize):
+    print("\nCreating a new key pair...")
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=keysize)
+    return private_key
 
 
 def generate_certificate(country_name, state_or_province_name,
@@ -49,6 +56,18 @@ def generate_certificate(country_name, state_or_province_name,
         private_key, hashes.SHA256()
     )
     return cert
+
+
+# Print the key pair components
+def print_key(privkey):
+    pem_privkey = privkey.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption())
+    for pemprivkey in pem_privkey.splitlines():
+        print(pemprivkey)
+
+    pubkey = privkey.public_key()
+    pem_pubkey = pubkey.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
+    for pempubkey in pem_pubkey.splitlines():
+        print(pempubkey)
 
 
 def get_public_key_from_cert(cert):

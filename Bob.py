@@ -1,20 +1,19 @@
 import json
 import socket
 import time
-
-from depreciated import pk_encryption
 from cryptography.hazmat.primitives import serialization
 from utils import generate_certificate, do_encrypt_with_passphrase, \
-    decipher_with_private_key
+    decipher_with_private_key, create_key_pair, print_key
+
 
 class Bob:
     def __init__(self, port):
         self.params = None
         self.conn = self.init_socket(port)
         # Criar a chave privada e pública do Bob
-        self.private_key_bob = pk_encryption.create_key_pair(2048)
+        self.private_key_bob = create_key_pair(2048)
         self.public_key_bob = self.private_key_bob.public_key()
-        print(pk_encryption.print_key(self.private_key_bob))
+        print(print_key(self.private_key_bob))
         self.bob_cert = generate_certificate("PT", "Lisboa", "Lisboa",
                                              "ISCTE-IUL", "olabob.pt",
                                              self.private_key_bob,

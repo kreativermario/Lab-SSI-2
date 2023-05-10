@@ -3,7 +3,7 @@ import socket
 import time
 import json
 from utils import print_public_key, generate_secret_key, get_public_key_from_cert, \
-    do_decrypt_with_passphrase, cipher_with_public_key
+    do_decrypt_with_passphrase, cipher_with_public_key, create_key_pair
 
 
 def init_socket(port):
@@ -18,7 +18,7 @@ class Alice:
     def __init__(self, port):
         self.bob_public_key = None
         self.conn = init_socket(port)
-        self.private_key_alice = pk_encryption.create_key_pair(2048)
+        self.private_key_alice = create_key_pair(2048)
         self.send_get_certificate()
         self.receive_certificate()
         # 4. Alice cria chave secreta SK

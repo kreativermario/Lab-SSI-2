@@ -3,7 +3,7 @@ import sk_encryption as sk
 import mac as m
 import pk_encryption as pk
 import digital_signature as ds
-from depreciated import x509 as x
+from prof_utils import x509 as x
 
 
 def print_menu():
