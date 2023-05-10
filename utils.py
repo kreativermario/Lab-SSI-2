@@ -2,6 +2,9 @@ import datetime
 import os
 import base64
 from cryptography import x509
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 
@@ -48,6 +51,20 @@ def generate_certificate(country_name, state_or_province_name,
     return cert
 
 
+def get_public_key_from_cert(cert):
+    try:
+        # Carrega o certificado digital
+        certificate = x509.load_pem_x509_certificate(cert)
+
+        # Obtém a chave pública do certificado digital
+        public_key_bob = certificate.public_key()
+        print("Successfully extracted public key from cert")
+        return public_key_bob
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+
 def print_public_key(pubkey):
     """
     Recebe uma chave pública RSA e retorna sua representação em PEM.
@@ -72,13 +89,10 @@ def generate_secret_key(length):
     print(f"Generated secret key {secret_key_b64}")
     return secret_key_b64
 
-def do_encrypt_with_passphrase(message):
+
+def do_encrypt_with_passphrase(message, passphrase, salt):
     print("\nEncrypting with a passphrase (derived to a 256-bit secret key using PBKDF2)")
-    input_passphrase = input("Enter a passphrase: ")
 
-    passphrase = input_passphrase.encode('utf8')
-
-    salt = os.urandom(16)
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA3_256(),
         length=32,
@@ -91,4 +105,32 @@ def do_encrypt_with_passphrase(message):
     ciphertext = f.encrypt(message)
     plaintext = f.decrypt(ciphertext)
     print("Ciphertext = " + str(ciphertext))
+    #print("Plaintext = " + str(plaintext.decode('utf-8')))
+    return ciphertext
+
+
+def do_decrypt_with_passphrase(ciphertext, passphrase, salt):
+    print("\nDecrypting with a passphrase (derived to a 256-bit secret key using PBKDF2)")
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA3_256(),
+        length=32,
+        salt=salt,
+        iterations=100000
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(passphrase))
+    print("KEY = " + str(key))
+    f = Fernet(key)
+    plaintext = f.decrypt(ciphertext)
     print("Plaintext = " + str(plaintext.decode('utf-8')))
+    return plaintext
+
+
+# Decipher a plaintext with the private key
+def decipher_with_private_key(privkey, ciphertext):
+    print("\nDeciphering with the private key...")
+    plaintext = privkey.decrypt(ciphertext, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    print("Plaintext = " + str(plaintext.decode()))
+    return plaintext
+
+

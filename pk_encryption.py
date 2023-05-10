@@ -43,6 +43,7 @@ def decipher_with_private_key(privkey, ciphertext):
     print("\nDeciphering with the private key...")
     plaintext = privkey.decrypt(ciphertext, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
     print("Plaintext = " + str(plaintext.decode()))
+    return plaintext
 
 
 # Do the encryption stuff with the public key cryptography
