@@ -8,21 +8,28 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 
+
 def create_key_pair(filename, keysize, password):
+    """
+    Cria par de chaves privada e pública
+    :param filename: nome do ficheiro a guardar em formato .key
+    :param keysize: tamanho da chave
+    :param password: password da key
+    """
     key = rsa.generate_private_key(public_exponent=65537, key_size=keysize)
     with open(filename, "wb") as f:
         f.write(key.private_bytes(encoding=serialization.Encoding.PEM,
                                   format=serialization.PrivateFormat.TraditionalOpenSSL,
                                   encryption_algorithm=serialization.BestAvailableEncryption(password.encode('ascii'))))
 
-# Create a new keypair
-# def create_key_pair(keysize):
-#     print("\nCreating a new key pair...")
-#     private_key = rsa.generate_private_key(public_exponent=65537, key_size=keysize)
-#     return private_key
-
 
 def read_key_pair(filename, password):
+    """
+    Leitura das chaves
+    :param filename: nome do ficheiro
+    :param password: password da chave
+    :return:
+    """
     with open(filename, "rb") as f:
         private_key = serialization.load_pem_private_key(
             f.read(), password=password.encode('ascii'))
@@ -51,11 +58,51 @@ def create_CSR(key, country_name, state_or_province_name, locality_name,
             x509.DNSName(u"www.mysite.com"),
         ]),
         critical=False,
-    # Sign the CSR with our private key
+        # Sign the CSR with our private key
     ).sign(key, hashes.SHA256())
     # write the CSR to disk
     with open(filename, "wb") as f:
         f.write(csr.public_bytes(serialization.Encoding.PEM))
+
+
+def create_self_signed_certificate(key, country_name, state_or_province_name,
+                                   locality_name, organization_name, common_name):
+    print("Creating a self-signed certificate...")
+
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state_or_province_name),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, locality_name),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
+        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+    ])
+
+    cert = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        issuer
+    ).public_key(
+        key.public_key()
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.datetime.utcnow()
+    ).not_valid_after(
+        # 10 years in duration
+        datetime.datetime.utcnow() + datetime.timedelta(days=3650)
+    ).add_extension(
+        x509.BasicConstraints(ca=True, path_length=None),
+        critical=True
+    ).add_extension(
+        x509.KeyUsage(digital_signature=True, key_encipherment=True, key_cert_sign=True, crl_sign=True,
+                      content_commitment=False, data_encipherment=False, key_agreement=False, encipher_only=False,
+                      decipher_only=False),
+        critical=True
+        # Sign the certificate
+    ).sign(key, hashes.SHA256())
+    # write certificate to disk
+    with open("root_certificate.pem", "wb") as f:
+        f.write(cert.public_bytes(serialization.Encoding.PEM))
 
 
 def load_csr_and_issue_certificate(key, cert, csr, filename):
@@ -144,94 +191,16 @@ def read_crt(filename):
     return cert
 
 
-def create_self_signed_certificate(key, country_name, state_or_province_name,
-                                   locality_name, organization_name, common_name):
-    print("Creating a self-signed certificate...")
-
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state_or_province_name),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, locality_name),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
-        x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-    ])
-
-    cert = x509.CertificateBuilder().subject_name(
-        subject
-    ).issuer_name(
-        issuer
-    ).public_key(
-        key.public_key()
-    ).serial_number(
-        x509.random_serial_number()
-    ).not_valid_before(
-        datetime.datetime.utcnow()
-    ).not_valid_after(
-        # 10 years in duration
-        datetime.datetime.utcnow() + datetime.timedelta(days=3650)
-    ).add_extension(
-        x509.BasicConstraints(ca=True, path_length=None),
-        critical=True
-    ).add_extension(
-        x509.KeyUsage(digital_signature=True, key_encipherment=True, key_cert_sign=True, crl_sign=True, content_commitment=False, data_encipherment=False, key_agreement=False, encipher_only=False, decipher_only=False),
-        critical=True
-    # Sign the certificate
-    ).sign(key, hashes.SHA256())
-    # write certificate to disk
-    with open("root_certificate.pem", "wb") as f:
-        f.write(cert.public_bytes(serialization.Encoding.PEM))
-
-
-def generate_certificate(country_name, state_or_province_name,
-                         locality_name, organization_name,
-                         common_name, private_key, public_key):
-    builder = x509.CertificateBuilder()
-    builder = builder.subject_name(x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state_or_province_name),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, locality_name),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
-        x509.NameAttribute(NameOID.COMMON_NAME, common_name)
-    ]))
-    builder = builder.issuer_name(x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, country_name),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state_or_province_name),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, locality_name),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, organization_name),
-        x509.NameAttribute(NameOID.COMMON_NAME, common_name)
-    ]))
-    builder = builder.not_valid_before(datetime.datetime.utcnow())
-    builder = builder.not_valid_after(datetime.datetime.utcnow() +
-                                      datetime.timedelta(days=3650))
-    builder = builder.serial_number(x509.random_serial_number())
-    builder = builder.public_key(public_key)
-    builder = builder.add_extension(x509.BasicConstraints(ca=True,
-                                                          path_length=None),
-                                    critical=True)
-    builder = builder.add_extension(x509.KeyUsage(digital_signature=True,
-                                                  key_encipherment=True,
-                                                  key_cert_sign=True, crl_sign=True,
-                                                  content_commitment=False,
-                                                  data_encipherment=False,
-                                                  key_agreement=False,
-                                                  encipher_only=False,
-                                                  decipher_only=False),
-                                    critical=True)
-
-    cert = builder.sign(
-        private_key, hashes.SHA256()
-    )
-    return cert
-
-
 # Print the key pair components
 def print_key(privkey):
-    pem_privkey = privkey.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption())
+    pem_privkey = privkey.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8,
+                                        encryption_algorithm=serialization.NoEncryption())
     for pemprivkey in pem_privkey.splitlines():
         print(pemprivkey)
 
     pubkey = privkey.public_key()
-    pem_pubkey = pubkey.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
+    pem_pubkey = pubkey.public_bytes(encoding=serialization.Encoding.PEM,
+                                     format=serialization.PublicFormat.SubjectPublicKeyInfo)
     for pempubkey in pem_pubkey.splitlines():
         print(pempubkey)
 
@@ -290,7 +259,7 @@ def do_encrypt_with_passphrase(message, passphrase, salt):
     ciphertext = f.encrypt(message)
     plaintext = f.decrypt(ciphertext)
     print("Ciphertext = " + str(ciphertext))
-    #print("Plaintext = " + str(plaintext.decode('utf-8')))
+    print("Plaintext = " + str(plaintext.decode('utf-8')))
     return ciphertext
 
 
@@ -314,7 +283,9 @@ def do_decrypt_with_passphrase(ciphertext, passphrase, salt):
 # Decipher a plaintext with the private key
 def decipher_with_private_key(privkey, ciphertext):
     print("\nDeciphering with the private key...")
-    plaintext = privkey.decrypt(ciphertext, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    plaintext = privkey.decrypt(ciphertext,
+                                padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(),
+                                             label=None))
     print("Plaintext = " + str(plaintext.decode()))
     return plaintext
 
@@ -323,7 +294,8 @@ def decipher_with_private_key(privkey, ciphertext):
 def cipher_with_public_key(message, pubkey):
     print("\nCiphering with the public key...")
 
-    ciphertext = pubkey.encrypt(message, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))
+    ciphertext = pubkey.encrypt(message,
+                                padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(),
+                                             label=None))
     print("Ciphertext = " + str(base64.b64encode(ciphertext)))
     return ciphertext
-

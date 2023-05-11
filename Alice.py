@@ -1,9 +1,12 @@
+import json
 import os
 import socket
 import time
-import json
-from utils import print_public_key, generate_secret_key, get_public_key_from_cert, \
-    do_decrypt_with_passphrase, cipher_with_public_key, create_key_pair, read_key_pair, create_CSR, read_crt, read_csr, \
+
+from utils import print_public_key, generate_secret_key, \
+    get_public_key_from_cert, \
+    do_decrypt_with_passphrase, cipher_with_public_key, create_key_pair, \
+    read_key_pair, create_CSR, read_crt, read_csr, \
     load_csr_and_issue_certificate
 
 parameters = {

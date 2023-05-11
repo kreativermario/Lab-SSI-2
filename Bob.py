@@ -1,9 +1,9 @@
 import json
 import socket
 import time
-from cryptography.hazmat.primitives import serialization
-from utils import generate_certificate, do_encrypt_with_passphrase, \
-    decipher_with_private_key, create_key_pair, print_key, read_key_pair, \
+
+from utils import do_encrypt_with_passphrase, \
+    decipher_with_private_key, create_key_pair, read_key_pair, \
     create_CSR, read_crt, read_csr, load_csr_and_issue_certificate, \
     create_self_signed_certificate
 
