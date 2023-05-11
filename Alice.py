@@ -48,9 +48,9 @@ class Alice:
 
     def init_certificate(self):
         create_key_pair("alice.key", parameters["keysize"], parameters["password"])
-        self.private_key_alice = read_key_pair("alice.key", parameters["password"])
+        private_key_alice = read_key_pair("alice.key", parameters["password"])
 
-        create_CSR(self.private_key_alice, parameters["country_name"],
+        create_CSR(private_key_alice, parameters["country_name"],
                    parameters["state_or_province_name"],
                    parameters["locality_name"],
                    parameters["organization_name"],
@@ -58,7 +58,7 @@ class Alice:
                    "alice.csr")
         ca_cert = read_crt("root_certificate.pem")
         csr = read_csr("alice.csr")
-        load_csr_and_issue_certificate(self.private_key_alice, ca_cert,
+        load_csr_and_issue_certificate(private_key_alice, ca_cert,
                                        csr, "alice.crt")
 
     def send_get_certificate(self):
