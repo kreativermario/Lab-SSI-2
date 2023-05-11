@@ -3,7 +3,29 @@ import socket
 import time
 from cryptography.hazmat.primitives import serialization
 from utils import generate_certificate, do_encrypt_with_passphrase, \
-    decipher_with_private_key, create_key_pair, print_key
+    decipher_with_private_key, create_key_pair, print_key, read_key_pair, \
+    create_CSR, read_crt, read_csr, load_csr_and_issue_certificate, \
+    create_self_signed_certificate
+
+parameters = {
+    "keysize": 2048,
+    "password": "password",
+    "country_name": "PT",
+    "state_or_province_name": "Lisboa",
+    "locality_name": "Lisboa",
+    "organization_name": "ISCTE-IUL",
+    "common_name": "Bob",
+}
+
+
+def init_certificate_authority():
+    create_key_pair("ca.key", parameters["keysize"], parameters["password"])
+    privkey = read_key_pair("ca.key", parameters["password"])
+    create_self_signed_certificate(privkey, "PT",
+                                   "Lisboa",
+                                   "Lisboa",
+                                   "DBM Cyber Consulting",
+                                   "DBM")
 
 
 class Bob:
@@ -11,20 +33,7 @@ class Bob:
         self.params = None
         self.conn = self.init_socket(port)
         # Criar a chave privada e pública do Bob
-        self.private_key_bob = create_key_pair(2048)
-        self.public_key_bob = self.private_key_bob.public_key()
-        print(print_key(self.private_key_bob))
-        self.bob_cert = generate_certificate("PT", "Lisboa", "Lisboa",
-                                             "ISCTE-IUL", "olabob.pt",
-                                             self.private_key_bob,
-                                             self.public_key_bob)
-        # Serializar o certificado digital do Bob
-        self.bob_cert_bytes = self.bob_cert.public_bytes(serialization.Encoding.PEM)
-        # Serializar a chave pública do Bob
-        self.public_key_bob_bytes = self.public_key_bob.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
+        self.init_certificate()
         self.receive_get_certificate()
         self.send_certificate()
         self.receive_secret_key_message()
@@ -37,6 +46,22 @@ class Bob:
         time.sleep(1)
         self.send_encrypted_message("Adeus, Alice!", self.decrypted_sk2)
         time.sleep(1)
+
+    def init_certificate(self):
+        create_key_pair("bob.key", parameters["keysize"], parameters["password"])
+        self.private_key_bob = read_key_pair("bob.key", parameters["password"])
+
+        create_CSR(self.private_key_bob, parameters["country_name"],
+                   parameters["state_or_province_name"],
+                   parameters["locality_name"],
+                   parameters["organization_name"],
+                   parameters["common_name"],
+                   "bob.csr")
+        ca_cert = read_crt("root_certificate.pem")
+        csr = read_csr("bob.csr")
+        load_csr_and_issue_certificate(self.private_key_bob, ca_cert,
+                                       csr, "bob.crt")
+        self.bob_cert = read_crt("bob.crt")
 
     def init_socket(self, port):
         # Criação do socket para comunicação
@@ -59,7 +84,7 @@ class Bob:
 
         time.sleep(0.5)  # Pausa de 0.5 segundos
         # 3. Bob envia certificado do Bob à Alice
-        self.conn.sendall(self.bob_cert_bytes)
+        self.conn.sendall(self.bob_cert)
         print("Sent digital certificate to Alice!\n")
         time.sleep(1)
 
@@ -99,4 +124,5 @@ class Bob:
         self.receive_get_certificate()
 
 
+init_certificate_authority()
 bob = Bob(44444)

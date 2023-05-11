@@ -3,7 +3,18 @@ import socket
 import time
 import json
 from utils import print_public_key, generate_secret_key, get_public_key_from_cert, \
-    do_decrypt_with_passphrase, cipher_with_public_key, create_key_pair
+    do_decrypt_with_passphrase, cipher_with_public_key, create_key_pair, read_key_pair, create_CSR, read_crt, read_csr, \
+    load_csr_and_issue_certificate
+
+parameters = {
+    "keysize": 2048,
+    "password": "password",
+    "country_name": "PT",
+    "state_or_province_name": "Lisboa",
+    "locality_name": "Lisboa",
+    "organization_name": "ISCTE-IUL",
+    "common_name": "Alice",
+}
 
 
 def init_socket(port):
@@ -18,7 +29,6 @@ class Alice:
     def __init__(self, port):
         self.bob_public_key = None
         self.conn = init_socket(port)
-        self.private_key_alice = create_key_pair(2048)
         self.send_get_certificate()
         self.receive_certificate()
         # 4. Alice cria chave secreta SK
@@ -35,6 +45,21 @@ class Alice:
         self.send_renew_secret_key()
         self.send_encrypted_sk(self.encrypted_sk2)
         self.decrypt_message_with_sk(self.sk2)
+
+    def init_certificate(self):
+        create_key_pair("alice.key", parameters["keysize"], parameters["password"])
+        self.private_key_alice = read_key_pair("alice.key", parameters["password"])
+
+        create_CSR(self.private_key_alice, parameters["country_name"],
+                   parameters["state_or_province_name"],
+                   parameters["locality_name"],
+                   parameters["organization_name"],
+                   parameters["common_name"],
+                   "alice.csr")
+        ca_cert = read_crt("root_certificate.pem")
+        csr = read_csr("alice.csr")
+        load_csr_and_issue_certificate(self.private_key_alice, ca_cert,
+                                       csr, "alice.crt")
 
     def send_get_certificate(self):
         # 1. Alice faz GET_CERTIFICATE ao Bob
